@@ -1,3 +1,4 @@
+# +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
 import motor.motor_asyncio
 import base64
 from config import DB_URI, DB_NAME
