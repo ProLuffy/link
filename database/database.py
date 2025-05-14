@@ -3,88 +3,193 @@ import motor.motor_asyncio
 import base64
 from config import DB_URI, DB_NAME
 from datetime import datetime, timedelta
+from typing import List, Optional
 
+# Initialize MongoDB client
 dbclient = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
 database = dbclient[DB_NAME]
 
+# Define collections
 user_data = database['users']
-channels_collection = database["channels"]
-encoded_links_collection = database["links"]
+channels_collection = database['channels']
+# Note: encoded_links_collection is defined but unused; removed from active code unless needed
 
-async def add_user(user_id: int):
-    existing_user = await user_data.find_one({'_id': user_id})
-    if existing_user:
-        return 
+async def add_user(user_id: int) -> bool:
+    """Add a user to the database if they don't exist."""
+    if not isinstance(user_id, int) or user_id <= 0:
+        print(f"Invalid user_id: {user_id}")
+        return False
     
     try:
-        await user_data.insert_one({'_id': user_id})
+        existing_user = await user_data.find_one({'_id': user_id})
+        if existing_user:
+            return False
+        
+        await user_data.insert_one({'_id': user_id, 'created_at': datetime.utcnow()})
+        return True
     except Exception as e:
         print(f"Error adding user {user_id}: {e}")
+        return False
 
-async def present_user(user_id: int):
-    found = await user_data.find_one({'_id': user_id})
-    return bool(found)
+async def present_user(user_id: int) -> bool:
+    """Check if a user exists in the database."""
+    if not isinstance(user_id, int):
+        return False
+    return bool(await user_data.find_one({'_id': user_id}))
 
-async def full_userbase():
-    user_docs = user_data.find()
-    return [doc['_id'] async for doc in user_docs]
+async def full_userbase() -> List[int]:
+    """Get all user IDs from the database."""
+    try:
+        user_docs = user_data.find()
+        return [doc['_id'] async for doc in user_docs]
+    except Exception as e:
+        print(f"Error fetching userbase: {e}")
+        return []
 
-async def del_user(user_id: int):
-    await user_data.delete_one({'_id': user_id})
-
-##-------------------------------------------------------------------
-
-async def is_admin(user_id: int):
-    return bool(await admins_collection.find_one({'_id': user_id}))
-
-##-------------------------------------------------------------------
-
-async def save_channel(channel_id: int):
-    """Save a channel_id to the database with invite link expiration."""
-    await channels_collection.update_one(
-        {"channel_id": channel_id},
-        {"$set": {"channel_id": channel_id, "invite_link_expiry": None}}, 
-        upsert=True
-    )
-
-async def get_channels():
-    """Get all channels from the database (No limit)"""
-    channels = await channels_collection.find().to_list(None) 
-    return [channel["channel_id"] for channel in channels]
-
-
-async def delete_channel(channel_id: int):
-    """Delete a channel from the database"""
-    await channels_collection.delete_one({"channel_id": channel_id})
+async def del_user(user_id: int) -> bool:
+    """Delete a user from the database."""
+    try:
+        result = await user_data.delete_one({'_id': user_id})
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"Error deleting user {user_id}: {e}")
+        return False
 
 ##-------------------------------------------------------------------
 
-async def save_encoded_link(channel_id: int):
-    encoded_link = base64.urlsafe_b64encode(str(channel_id).encode()).decode()
-    await channels_collection.update_one(
-        {"channel_id": channel_id},
-        {"$set": {"encoded_link": encoded_link, "status": "active"}},
-        upsert=True
-    )
-    return encoded_link
+async def is_admin(user_id: int) -> bool:
+    """Check if a user is an admin."""
+    # Note: Assumes admins_collection exists; define it if needed
+    admins_collection = database['admins']  # Add this collection to database setup if required
+    try:
+        return bool(await admins_collection.find_one({'_id': user_id}))
+    except Exception as e:
+        print(f"Error checking admin status for {user_id}: {e}")
+        return False
 
+##-------------------------------------------------------------------
 
-async def get_channel_by_encoded_link(encoded_link: str):
-    channel = await channels_collection.find_one({"encoded_link": encoded_link, "status": "active"})
-    return channel["channel_id"] if channel else None
+async def save_channel(channel_id: int) -> bool:
+    """Save a channel to the database with invite link expiration."""
+    if not isinstance(channel_id, int):
+        print(f"Invalid channel_id: {channel_id}")
+        return False
+    
+    try:
+        await channels_collection.update_one(
+            {"channel_id": channel_id},
+            {
+                "$set": {
+                    "channel_id": channel_id,
+                    "invite_link_expiry": None,  # Set to None or a datetime if used
+                    "created_at": datetime.utcnow(),
+                    "status": "active"
+                }
+            },
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        print(f"Error saving channel {channel_id}: {e}")
+        return False
 
-#----------------------------------------------------------------------------------------------------------------
+async def get_channels() -> List[int]:
+    """Get all active channel IDs from the database."""
+    try:
+        channels = await channels_collection.find({"status": "active"}).to_list(None)
+        valid_channels = []
+        for channel in channels:
+            if isinstance(channel, dict) and "channel_id" in channel:
+                valid_channels.append(channel["channel_id"])
+            else:
+                print(f"Invalid channel document: {channel}")
+        if not valid_channels:
+            print("No valid channels found in database")
+        return valid_channels
+    except Exception as e:
+        print(f"Error fetching channels: {e}")
+        return []
 
-async def save_encoded_link2(channel_id: int, encoded_link: str):
-    await channels_collection.update_one(
-        {"channel_id": channel_id},
-        {"$set": {"req_encoded_link": encoded_link, "status": "active"}},
-        upsert=True
-    )
-    return encoded_link
+async def delete_channel(channel_id: int) -> bool:
+    """Delete a channel from the database."""
+    try:
+        result = await channels_collection.delete_one({"channel_id": channel_id})
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"Error deleting channel {channel_id}: {e}")
+        return False
 
-async def get_channel_by_encoded_link2(encoded_link: str):
-    channel = await channels_collection.find_one({"req_encoded_link": encoded_link, "status": "active"})
-    return channel["channel_id"] if channel else None
+##-------------------------------------------------------------------
 
+async def save_encoded_link(channel_id: int) -> Optional[str]:
+    """Save an encoded link for a channel and return it."""
+    if not isinstance(channel_id, int):
+        print(f"Invalid channel_id: {channel_id}")
+        return None
+    
+    try:
+        encoded_link = base64.urlsafe_b64encode(str(channel_id).encode()).decode()
+        await channels_collection.update_one(
+            {"channel_id": channel_id},
+            {
+                "$set": {
+                    "encoded_link": encoded_link,
+                    "status": "active",
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        return encoded_link
+    except Exception as e:
+        print(f"Error saving encoded link for channel {channel_id}: {e}")
+        return None
 
+async def get_channel_by_encoded_link(encoded_link: str) -> Optional[int]:
+    """Get a channel ID by its encoded link."""
+    if not isinstance(encoded_link, str):
+        return None
+    
+    try:
+        channel = await channels_collection.find_one({"encoded_link": encoded_link, "status": "active"})
+        return channel["channel_id"] if channel and "channel_id" in channel else None
+    except Exception as e:
+        print(f"Error fetching channel by encoded link {encoded_link}: {e}")
+        return None
+
+##-------------------------------------------------------------------
+
+async def save_encoded_link2(channel_id: int, encoded_link: str) -> Optional[str]:
+    """Save a secondary encoded link for a channel."""
+    if not isinstance(channel_id, int) or not isinstance(encoded_link, str):
+        print(f"Invalid input: channel_id={channel_id}, encoded_link={encoded_link}")
+        return None
+    
+    try:
+        await channels_collection.update_one(
+            {"channel_id": channel_id},
+            {
+                "$set": {
+                    "req_encoded_link": encoded_link,
+                    "status": "active",
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        return encoded_link
+    except Exception as e:
+        print(f"Error saving secondary encoded link for channel {channel_id}: {e}")
+        return None
+
+async def get_channel_by_encoded_link2(encoded_link: str) -> Optional[int]:
+    """Get a channel ID by its secondary encoded link."""
+    if not isinstance(encoded_link, str):
+        return None
+    
+    try:
+        channel = await channels_collection.find_one({"req_encoded_link": encoded_link, "status": "active"})
+        return channel["channel_id"] if channel and "channel_id" in channel else None
+    except Exception as e:
+        print(f"Error fetching channel by secondary encoded link {encoded_link}: {e}")
+        return None
