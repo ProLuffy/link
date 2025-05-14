@@ -14,7 +14,7 @@ PAGE_SIZE = 6
 
 # Revoke invite link after 10 minutes
 async def revoke_invite_after_10_minutes(client: Bot, channel_id: int, link: str, is_request: bool = False):
-    await asyncio.sleep(300)  # 10 minutes
+    await asyncio.sleep(600)  # 10 minutes
     try:
         if is_request:
             await client.revoke_chat_invite_link(channel_id, link)
@@ -23,30 +23,28 @@ async def revoke_invite_after_10_minutes(client: Bot, channel_id: int, link: str
             await client.revoke_chat_invite_link(channel_id, link)
             print(f"Invite link revoked for channel {channel_id}")
     except Exception as e:
-        print(f"Failed to revoke invite for {channel_id}: {e}")
+        print(f"Failed to revoke invite for channel {channel_id}: {e}")
 
-##----------------------------------------------------------------------------------------------------        
-##----------------------------------------------------------------------------------------------------
-
+# Set channel command
 @Bot.on_message(filters.command('setchannel') & filters.private & filters.user(OWNER_ID))
 async def set_channel(client: Bot, message: Message):
     user_id = message.from_user.id
     if user_id not in ADMINS:
-        return await message.reply("You are not an admin.")
+        return await message.reply("You are not authorized to use this command.")
     
     try:
         channel_id = int(message.command[1])
     except (IndexError, ValueError):
-        return await message.reply("Channel id check karo chacha. Example: /setchannel <channel_id>")
+        return await message.reply("Invalid channel ID. Example: /setchannel <channel_id>")
     
     try:
         chat = await client.get_chat(channel_id)
 
         if chat.permissions and not (chat.permissions.can_post_messages or chat.permissions.can_edit_messages):
-            return await message.reply(f"Me hoon isme-{chat.title} lekin permission tumhare chacha denge.")
+            return await message.reply(f"I am in {chat.title}, but I lack posting or editing permissions.")
         
         await save_channel(channel_id)
-        return await message.reply(f"✅ Channel-({chat.title})-({channel_id}) add ho gya ha maharaj.")
+        return await message.reply(f"✅ Channel {chat.title} ({channel_id}) has been added successfully.")
     
     except UserNotParticipant:
         return await message.reply("I am not a member of this channel. Please add me and try again.")
@@ -58,34 +56,29 @@ async def set_channel(client: Bot, message: Message):
     except Exception as e:
         return await message.reply(f"Unexpected Error: {str(e)}")
 
-##----------------------------------------------------------------------------------------------------
-##----------------------------------------------------------------------------------------------------        
-
+# Delete channel command
 @Bot.on_message(filters.command('delchannel') & filters.private & filters.user(OWNER_ID))
 async def del_channel(client: Bot, message: Message):
     user_id = message.from_user.id
     if user_id not in ADMINS:
-        return await message.reply("You are not an admin.")
+        return await message.reply("You are not authorized to use this command.")
     
     try:
         channel_id = int(message.command[1])
     except (IndexError, ValueError):
-        return await message.reply("Channel id galat ha mere aaka.")
+        return await message.reply("Invalid channel ID. Example: /delchannel <channel_id>")
     
     await delete_channel(channel_id)
-    return await message.reply(f"❌ Channel {channel_id} hata dia gaya ha maharaj.")
+    return await message.reply(f"❌ Channel {channel_id} has been removed successfully.")
 
-##----------------------------------------------------------------------------------------------------        
-##----------------------------------------------------------------------------------------------------
-
+# Channel post command
 @Bot.on_message(filters.command('channelpost') & filters.private & filters.user(OWNER_ID))
 async def channel_post(client: Bot, message: Message):
     channels = await get_channels()
     if not channels:
-        return await message.reply("Channels Available nahi hain maharaj. Pehle /setchannel use kijiye.")
+        return await message.reply("No channels are available. Please use /setchannel to add a channel.")
 
     await send_channel_page(client, message, channels, page=0)
-
 
 async def send_channel_page(client, message, channels, page):
     total_pages = (len(channels) + PAGE_SIZE - 1) // PAGE_SIZE
@@ -106,7 +99,7 @@ async def send_channel_page(client, message, channels, page):
                 buttons.append(row)
                 row = [] 
         except Exception as e:
-            print(f"Error for {channel_id}: {e}")
+            print(f"Error for channel {channel_id}: {e}")
 
     if row: 
         buttons.append(row)
@@ -123,7 +116,6 @@ async def send_channel_page(client, message, channels, page):
     reply_markup = InlineKeyboardMarkup(buttons)
     await message.reply("📢 Select a channel to post:", reply_markup=reply_markup)
 
-
 @Bot.on_callback_query(filters.regex(r"channelpage_(\d+)"))
 async def paginate_channels(client, callback_query):
     page = int(callback_query.data.split("_")[1])
@@ -131,17 +123,14 @@ async def paginate_channels(client, callback_query):
     await callback_query.message.delete()
     await send_channel_page(client, callback_query.message, channels, page)
 
-
-##----------------------------------------------------------------------------------------------------
-
+# Request post command
 @Bot.on_message(filters.command('reqpost') & filters.private & filters.user(OWNER_ID))
 async def req_post(client: Bot, message: Message):
     channels = await get_channels()
     if not channels:
-        return await message.reply("Channels Available nahi hain maharaj. Pehle /setchannel use kijiye.")
+        return await message.reply("No channels are available. Please use /setchannel to add a channel.")
 
     await send_request_page(client, message, channels, page=0)
-
 
 async def send_request_page(client, message, channels, page):
     total_pages = (len(channels) + PAGE_SIZE - 1) // PAGE_SIZE
@@ -163,7 +152,7 @@ async def send_request_page(client, message, channels, page):
                 buttons.append(row)
                 row = [] 
         except Exception as e:
-            print(f"Error generating request link for {channel_id}: {e}")
+            print(f"Error generating request link for channel {channel_id}: {e}")
 
     if row: 
         buttons.append(row)
@@ -179,11 +168,9 @@ async def send_request_page(client, message, channels, page):
     reply_markup = InlineKeyboardMarkup(buttons)
     await message.reply("📢 Select a channel to request access:", reply_markup=reply_markup)
 
-
 @Bot.on_callback_query(filters.regex(r"reqpage_(\d+)"))
 async def paginate_requests(client, callback_query):
     page = int(callback_query.data.split("_")[1])
     channels = await get_channels()
     await callback_query.message.delete()
     await send_request_page(client, callback_query.message, channels, page)
-    
