@@ -16,18 +16,16 @@ from config import ADMINS, OWNER_ID
 from helper_func import encode, decode
 from database.database import save_encoded_link, get_channel_by_encoded_link, save_encoded_link2, get_channel_by_encoded_link2
 from database.database import add_user, del_user, full_userbase, present_user, is_admin
-from plugins.newpost import revoke_invite_after_10_minutes
+from database.database import save_invite_link, get_current_invite_link
+from plugins.newpost import revoke_invite_after_5_minutes
 
-# Start picture URL
-START_PIC_URL = "https://telegra.ph/file/dcd4fca8a27c510455683.jpg"
-
-#=====================================================================================##
+# Start picture file ID (replace with actual file ID)
+START_PIC_FILE_ID = "https://graph.org/file/3cd6b9eb3c714fd25c2f6-5e5b8e3eaefc268d0d.jpg"
 
 @Bot.on_message(filters.command('start') & filters.private)
 async def start_command(client: Bot, message: Message):
     user_id = message.from_user.id
 
-    # Check if the user is banned
     if user_id in user_banned_until:
         if datetime.now() < user_banned_until[user_id]:
             return await message.reply_text(
@@ -35,7 +33,6 @@ async def start_command(client: Bot, message: Message):
                 parse_mode=ParseMode.HTML
             )
 
-    # Add user to database
     await add_user(user_id)
 
     text = message.text
@@ -56,11 +53,24 @@ async def start_command(client: Bot, message: Message):
                     parse_mode=ParseMode.HTML
                 )
             
+            # Check for existing invite link
+            old_link_info = await get_current_invite_link(channel_id)
+            if old_link_info:
+                try:
+                    await client.revoke_chat_invite_link(channel_id, old_link_info["invite_link"])
+                    print(f"Revoked old {'request' if old_link_info['is_request'] else 'invite'} link for channel {channel_id}")
+                except Exception as e:
+                    print(f"Failed to revoke old link for channel {channel_id}: {e}")
+
+            # Generate new invite link
             invite = await client.create_chat_invite_link(
                 chat_id=channel_id,
-                expire_date=datetime.now() + timedelta(minutes=10),
+                expire_date=datetime.now() + timedelta(minutes=5),
                 creates_join_request=is_request
             )
+
+            # Save new invite link
+            await save_invite_link(channel_id, invite.invite_link, is_request)
 
             button_text = "Request to Join" if is_request else "Join Channel"
             button = InlineKeyboardMarkup([[InlineKeyboardButton(button_text, url=invite.invite_link)]])
@@ -71,7 +81,7 @@ async def start_command(client: Bot, message: Message):
                 parse_mode=ParseMode.HTML
             )
 
-            asyncio.create_task(revoke_invite_after_10_minutes(client, channel_id, invite.invite_link, is_request))
+            asyncio.create_task(revoke_invite_after_5_minutes(client, channel_id, invite.invite_link, is_request))
 
         except Exception as e:
             await message.reply_text(
@@ -95,7 +105,7 @@ async def start_command(client: Bot, message: Message):
         
         try:
             await message.reply_photo(
-                photo=START_PIC_URL,
+                photo=START_PIC_FILE_ID,
                 caption=welcome_message,
                 reply_markup=inline_buttons,
                 parse_mode=ParseMode.HTML
@@ -107,7 +117,6 @@ async def start_command(client: Bot, message: Message):
                 reply_markup=inline_buttons,
                 parse_mode=ParseMode.HTML
             )
-
 #=====================================================================================##
 
 WAIT_MSG = "<b>Processing...</b>"
