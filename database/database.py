@@ -12,7 +12,6 @@ database = dbclient[DB_NAME]
 # Define collections
 user_data = database['users']
 channels_collection = database['channels']
-# Note: encoded_links_collection is defined but unused; removed from active code unless needed
 
 async def add_user(user_id: int) -> bool:
     """Add a user to the database if they don't exist."""
@@ -55,19 +54,14 @@ async def del_user(user_id: int) -> bool:
         print(f"Error deleting user {user_id}: {e}")
         return False
 
-##-------------------------------------------------------------------
-
 async def is_admin(user_id: int) -> bool:
     """Check if a user is an admin."""
-    # Note: Assumes admins_collection exists; define it if needed
-    admins_collection = database['admins']  # Add this collection to database setup if required
+    admins_collection = database['admins']
     try:
         return bool(await admins_collection.find_one({'_id': user_id}))
     except Exception as e:
         print(f"Error checking admin status for {user_id}: {e}")
         return False
-
-##-------------------------------------------------------------------
 
 async def save_channel(channel_id: int) -> bool:
     """Save a channel to the database with invite link expiration."""
@@ -81,7 +75,7 @@ async def save_channel(channel_id: int) -> bool:
             {
                 "$set": {
                     "channel_id": channel_id,
-                    "invite_link_expiry": None,  # Set to None or a datetime if used
+                    "invite_link_expiry": None,
                     "created_at": datetime.utcnow(),
                     "status": "active"
                 }
@@ -104,7 +98,7 @@ async def get_channels() -> List[int]:
             else:
                 print(f"Invalid channel document: {channel}")
         if not valid_channels:
-            print("No valid channels found in database")
+            print(f"No valid channels found in database. Total documents checked: {len(channels)}")
         return valid_channels
     except Exception as e:
         print(f"Error fetching channels: {e}")
@@ -118,8 +112,6 @@ async def delete_channel(channel_id: int) -> bool:
     except Exception as e:
         print(f"Error deleting channel {channel_id}: {e}")
         return False
-
-##-------------------------------------------------------------------
 
 async def save_encoded_link(channel_id: int) -> Optional[str]:
     """Save an encoded link for a channel and return it."""
@@ -157,8 +149,6 @@ async def get_channel_by_encoded_link(encoded_link: str) -> Optional[int]:
         print(f"Error fetching channel by encoded link {encoded_link}: {e}")
         return None
 
-##-------------------------------------------------------------------
-
 async def save_encoded_link2(channel_id: int, encoded_link: str) -> Optional[str]:
     """Save a secondary encoded link for a channel."""
     if not isinstance(channel_id, int) or not isinstance(encoded_link, str):
@@ -192,4 +182,45 @@ async def get_channel_by_encoded_link2(encoded_link: str) -> Optional[int]:
         return channel["channel_id"] if channel and "channel_id" in channel else None
     except Exception as e:
         print(f"Error fetching channel by secondary encoded link {encoded_link}: {e}")
+        return None
+
+async def save_invite_link(channel_id: int, invite_link: str, is_request: bool) -> bool:
+    """Save the current invite link for a channel and its type."""
+    if not isinstance(channel_id, int) or not isinstance(invite_link, str):
+        print(f"Invalid input: channel_id={channel_id}, invite_link={invite_link}")
+        return False
+    
+    try:
+        await channels_collection.update_one(
+            {"channel_id": channel_id},
+            {
+                "$set": {
+                    "current_invite_link": invite_link,
+                    "is_request_link": is_request,
+                    "invite_link_created_at": datetime.utcnow(),
+                    "status": "active"
+                }
+            },
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        print(f"Error saving invite link for channel {channel_id}: {e}")
+        return False
+
+async def get_current_invite_link(channel_id: int) -> Optional[dict]:
+    """Get the current invite link and its type for a channel."""
+    if not isinstance(channel_id, int):
+        return None
+    
+    try:
+        channel = await channels_collection.find_one({"channel_id": channel_id, "status": "active"})
+        if channel and "current_invite_link" in channel:
+            return {
+                "invite_link": channel["current_invite_link"],
+                "is_request": channel.get("is_request_link", False)
+            }
+        return None
+    except Exception as e:
+        print(f"Error fetching current invite link for channel {channel_id}: {e}")
         return None
