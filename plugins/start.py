@@ -10,17 +10,27 @@ from pyrogram.enums import ParseMode, ChatMemberStatus
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, User
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated, UserNotParticipant, ChatIdInvalid
 
+# plugins/start.py
+import asyncio
+import base64
+from collections import defaultdict
+from pyrogram import Client, filters
+from pyrogram.enums import ParseMode
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.errors import FloodWait
+
 from bot import Bot
 from datetime import datetime, timedelta
 from config import ADMINS, OWNER_ID
-from helper_func import encode, decode
 from database.database import save_encoded_link, get_channel_by_encoded_link, save_encoded_link2, get_channel_by_encoded_link2
-from database.database import add_user, del_user, full_userbase, present_user, is_admin
+from database.database import add_user
 from database.database import save_invite_link, get_current_invite_link
 from plugins.newpost import revoke_invite_after_5_minutes
 
 # Start picture file ID (replace with actual file ID)
-START_PIC_FILE_ID = "https://graph.org/file/3cd6b9eb3c714fd25c2f6-5e5b8e3eaefc268d0d.jpg"
+START_PIC_FILE_ID = "AgACAgUAAxkBAAIBEWcO2rKz5z8AAV0Qz4m7f3qJAAH9EAACi7gxG3-VmVqL4W3rAAK5AAQBAAMCAAN4AAM1BA"
+
+user_banned_until = {}
 
 @Bot.on_message(filters.command('start') & filters.private)
 async def start_command(client: Bot, message: Message):
@@ -53,7 +63,6 @@ async def start_command(client: Bot, message: Message):
                     parse_mode=ParseMode.HTML
                 )
             
-            # Check for existing invite link
             old_link_info = await get_current_invite_link(channel_id)
             if old_link_info:
                 try:
@@ -62,14 +71,12 @@ async def start_command(client: Bot, message: Message):
                 except Exception as e:
                     print(f"Failed to revoke old link for channel {channel_id}: {e}")
 
-            # Generate new invite link
             invite = await client.create_chat_invite_link(
                 chat_id=channel_id,
                 expire_date=datetime.now() + timedelta(minutes=5),
                 creates_join_request=is_request
             )
 
-            # Save new invite link
             await save_invite_link(channel_id, invite.invite_link, is_request)
 
             button_text = "Request to Join" if is_request else "Join Channel"
@@ -117,6 +124,41 @@ async def start_command(client: Bot, message: Message):
                 reply_markup=inline_buttons,
                 parse_mode=ParseMode.HTML
             )
+
+@Bot.on_callback_query(filters.regex("help"))
+async def help_callback(client: Bot, callback_query):
+    new_text = (
+        "<b>Creator: <a href='https://t.me/i_killed_my_clan'>Obito</a>\n"
+        "Our Community: <a href='https://t.me/society_network'>Society Network</a>\n"
+        "Anime Channel: <a href='https://t.me/animes_sub_society'>Anime Society</a>\n"
+        "Ongoing Society: <a href='https://t.me/Ongoiing_society'>Ongoing Society</a>\n"
+        "Manga Society: <a href='https://t.me/Manga_X_Society'>Manga Society</a>\n"
+        "Developer: <a href='https://t.me/i_killed_my_clan'>Obito</a></b>"
+    )
+    inline_buttons = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Close", callback_data="close")]
+        ]
+    )
+
+    await callback_query.answer()
+    current_text = callback_query.message.text.html if callback_query.message.text else ""
+    if current_text != new_text or callback_query.message.reply_markup != inline_buttons:
+        try:
+            await callback_query.message.edit_text(
+                new_text,
+                reply_markup=inline_buttons,
+                parse_mode=ParseMode.HTML
+            )
+        except Exception as e:
+            print(f"Error editing help message: {e}")
+    else:
+        print("Skipped edit: Message content unchanged")
+
+@Bot.on_callback_query(filters.regex("close"))
+async def close_callback(client: Bot, callback_query):
+    await callback_query.answer()
+    await callback_query.message.delete()
 #=====================================================================================##
 
 WAIT_MSG = "<b>Processing...</b>"
