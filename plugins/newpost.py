@@ -7,6 +7,7 @@ from pyrogram.errors import UserNotParticipant, FloodWait, ChatAdminRequired, RP
 from pyrogram.errors import InviteHashExpired, InviteRequestSent
 from database.database import save_channel, delete_channel, get_channels
 from database.database import save_encoded_link, get_channel_by_encoded_link, save_encoded_link2, get_channel_by_encoded_link2
+from database.database import save_invite_link, get_current_invite_link
 from config import ADMINS, OWNER_ID
 from helper_func import encode
 from datetime import datetime, timedelta
@@ -14,20 +15,15 @@ from typing import List
 
 PAGE_SIZE = 6
 
-async def revoke_invite_after_10_minutes(client: Bot, channel_id: int, link: str, is_request: bool = False) -> None:
-    """Revoke an invite link after 10 minutes."""
-    await asyncio.sleep(600)  # 10 minutes
+async def revoke_invite_after_5_minutes(client: Bot, channel_id: int, link: str, is_request: bool = False) -> None:
+    """Revoke an invite link after 5 minutes."""
+    await asyncio.sleep(300)  # 5 minutes
     try:
         await client.revoke_chat_invite_link(channel_id, link)
         print(f"{'Join request' if is_request else 'Invite'} link revoked for channel {channel_id}")
     except Exception as e:
         print(f"Failed to revoke invite for channel {channel_id}: {e}")
 
-# ------------------------------------------------------------------------------------
-# Set Channel Command
-# ------------------------------------------------------------------------------------
-
-@Bot.on_message(filters.command('setchannel') & filters.private & filters.user(OWNER_ID))
 async def set_channel(client: Bot, message: Message) -> None:
     """Add a channel to the database."""
     user_id = message.from_user.id
@@ -43,8 +39,6 @@ async def set_channel(client: Bot, message: Message) -> None:
 
     try:
         chat = await client.get_chat(channel_id)
-
-        # Check if the bot has sufficient permissions
         if chat.permissions and not (chat.permissions.can_post_messages or chat.permissions.can_edit_messages):
             await message.reply(f"Insufficient permissions in channel '{chat.title}'.")
             return
@@ -64,11 +58,6 @@ async def set_channel(client: Bot, message: Message) -> None:
     except Exception as e:
         await message.reply(f"Unexpected error: {str(e)}")
 
-# ------------------------------------------------------------------------------------
-# Delete Channel Command
-# ------------------------------------------------------------------------------------
-
-@Bot.on_message(filters.command('delchannel') & filters.private & filters.user(OWNER_ID))
 async def del_channel(client: Bot, message: Message) -> None:
     """Remove a channel from the database."""
     user_id = message.from_user.id
@@ -88,11 +77,6 @@ async def del_channel(client: Bot, message: Message) -> None:
     else:
         await message.reply(f"Channel {channel_id} not found or could not be removed.")
 
-# ------------------------------------------------------------------------------------
-# Channel Post Command
-# ------------------------------------------------------------------------------------
-
-@Bot.on_message(filters.command('channelpost') & filters.private & filters.user(OWNER_ID))
 async def channel_post(client: Bot, message: Message) -> None:
     """Display a paginated list of channels for posting."""
     channels = await get_channels()
@@ -112,6 +96,25 @@ async def send_channel_page(client: Bot, message: Message, channels: List[int], 
     row = []
     for channel_id in channels[start_idx:end_idx]:
         try:
+            # Check for existing invite link
+            old_link_info = await get_current_invite_link(channel_id)
+            if old_link_info:
+                try:
+                    await client.revoke_chat_invite_link(channel_id, old_link_info["invite_link"])
+                    print(f"Revoked old invite link for channel {channel_id}")
+                except Exception as e:
+                    print(f"Failed to revoke old invite link for channel {channel_id}: {e}")
+
+            # Generate new invite link
+            invite = await client.create_chat_invite_link(
+                chat_id=channel_id,
+                expire_date=datetime.now() + timedelta(minutes=5),
+                creates_join_request=False
+            )
+
+            # Save new invite link
+            await save_invite_link(channel_id, invite.invite_link, is_request=False)
+
             base64_invite = await save_encoded_link(channel_id)
             if not base64_invite:
                 print(f"Failed to generate encoded link for channel {channel_id}")
@@ -120,6 +123,9 @@ async def send_channel_page(client: Bot, message: Message, channels: List[int], 
             button_link = f"https://t.me/{client.username}?start={base64_invite}"
             chat = await client.get_chat(channel_id)
             row.append(InlineKeyboardButton(chat.title or f"Channel {channel_id}", url=button_link))
+
+            # Schedule revocation
+            asyncio.create_task(revoke_invite_after_5_minutes(client, channel_id, invite.invite_link, is_request=False))
 
             if len(row) == 2:
                 buttons.append(row)
@@ -150,11 +156,6 @@ async def paginate_channels(client: Bot, callback_query) -> None:
     await callback_query.message.delete()
     await send_channel_page(client, callback_query.message, channels, page)
 
-# ------------------------------------------------------------------------------------
-# Request Post Command
-# ------------------------------------------------------------------------------------
-
-@Bot.on_message(filters.command('reqpost') & filters.private & filters.user(OWNER_ID))
 async def req_post(client: Bot, message: Message) -> None:
     """Display a paginated list of channels for join requests."""
     channels = await get_channels()
@@ -174,6 +175,25 @@ async def send_request_page(client: Bot, message: Message, channels: List[int], 
     row = []
     for channel_id in channels[start_idx:end_idx]:
         try:
+            # Check for existing invite link
+            old_link_info = await get_current_invite_link(channel_id)
+            if old_link_info:
+                try:
+                    await client.revoke_chat_invite_link(channel_id, old_link_info["invite_link"])
+                    print(f"Revoked old request link for channel {channel_id}")
+                except Exception as e:
+                    print(f"Failed to revoke old request link for channel {channel_id}: {e}")
+
+            # Generate new invite link
+            invite = await client.create_chat_invite_link(
+                chat_id=channel_id,
+                expire_date=datetime.now() + timedelta(minutes=5),
+                creates_join_request=True
+            )
+
+            # Save new invite link
+            await save_invite_link(channel_id, invite.invite_link, is_request=True)
+
             base64_request = await encode(str(channel_id))
             saved_link = await save_encoded_link2(channel_id, base64_request)
             if not saved_link:
@@ -183,6 +203,9 @@ async def send_request_page(client: Bot, message: Message, channels: List[int], 
             button_link = f"https://t.me/{client.username}?start=req_{base64_request}"
             chat = await client.get_chat(channel_id)
             row.append(InlineKeyboardButton(chat.title or f"Channel {channel_id}", url=button_link))
+
+            # Schedule revocation
+            asyncio.create_task(revoke_invite_after_5_minutes(client, channel_id, invite.invite_link, is_request=True))
 
             if len(row) == 2:
                 buttons.append(row)
