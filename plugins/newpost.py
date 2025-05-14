@@ -1,3 +1,4 @@
+# +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
 import asyncio
 import base64
 from pyrogram import Client as Bot, filters
