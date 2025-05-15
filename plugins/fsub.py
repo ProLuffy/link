@@ -1,14 +1,15 @@
-# plugins/FSub.py
+# +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from config import ADMINS
 from database.database import add_fsub_channel, remove_fsub_channel, get_fsub_channels
+from pyrogram.enums import ChatMemberStatus
 
 @Client.on_message(filters.command('addfsub') & filters.private & filters.user(ADMINS))
 async def add_fsub_command(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "<b>Please provide a channel ID or username. Usage: /addfsub @channel_username or /addfsub -100123456789</b>",
+            "<b>Please provide a channel ID or username. Usage: /addfsub @channel_username or /addfsub</b>",
             parse_mode="HTML"
         )
     
@@ -108,4 +109,4 @@ async def list_fsub_command(client: Client, message: Message):
         await message.reply_text(
             f"<b>Error listing FSub channels: {str(e)}</b>",
             parse_mode="HTML"
-      )
+        )
