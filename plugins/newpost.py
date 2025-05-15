@@ -14,7 +14,7 @@ PAGE_SIZE = 6
 
 # Revoke invite link after 10 minutes
 async def revoke_invite_after_10_minutes(client: Bot, channel_id: int, link: str, is_request: bool = False):
-    await asyncio.sleep(600)  # 10 minutes
+    await asyncio.sleep(300)  # 10 minutes
     try:
         if is_request:
             await client.revoke_chat_invite_link(channel_id, link)
