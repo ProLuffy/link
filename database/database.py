@@ -1,4 +1,4 @@
-# database.py
+# +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
 import motor.motor_asyncio
 import base64
 from config import DB_URI, DB_NAME
@@ -14,7 +14,6 @@ user_data = database['users']
 channels_collection = database['channels']
 fsub_channels_collection = database['fsub_channels']  # New collection for FSub channels
 
-# Existing functions (unchanged, included for context)
 async def add_user(user_id: int) -> bool:
     """Add a user to the database if they don't exist."""
     if not isinstance(user_id, int) or user_id <= 0:
@@ -127,7 +126,7 @@ async def save_encoded_link(channel_id: int) -> Optional[str]:
             {"channel_id": channel_id},
             {
                 "$set": {
-                    "encoded_link": encoded   encoded_link,
+                    "encoded_link": encoded_link,
                     "status": "active",
                     "updated_at": datetime.utcnow()
                 }
@@ -227,7 +226,6 @@ async def get_current_invite_link(channel_id: int) -> Optional[dict]:
         print(f"Error fetching current invite link for channel {channel_id}: {e}")
         return None
 
-# New FSub functions
 async def add_fsub_channel(channel_id: int) -> bool:
     """Add a channel to the FSub list."""
     if not isinstance(channel_id, int):
