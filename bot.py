@@ -27,9 +27,6 @@ class Bot(Client):
         self.LOGGER = LOGGER
 
     # Global cancel flag for broadcast
-is_canceled = False
-cancel_lock = asyncio.Lock()
-
     async def start(self):
         await super().start()
         usr_bot_me = await self.get_me()
