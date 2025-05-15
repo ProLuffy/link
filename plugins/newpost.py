@@ -18,36 +18,36 @@ async def revoke_invite_after_5_minutes(client: Bot, channel_id: int, link: str,
     try:
         if is_request:
             await client.revoke_chat_invite_link(channel_id, link)
-            print(f"Join request link revoked for channel {channel_id}")
+            print(f"Jᴏɪɴ ʀᴇǫᴜᴇsᴛ ʟɪɴᴋ ʀᴇᴠᴏᴋᴇᴅ ғᴏʀ ᴄʜᴀɴɴᴇʟ {channel_id}<b>")
         else:
             await client.revoke_chat_invite_link(channel_id, link)
-            print(f"Invite link revoked for channel {channel_id}")
+            print(f"Iɴᴠɪᴛᴇ ʟɪɴᴋ ʀᴇᴠᴏᴋᴇᴅ ғᴏʀ ᴄʜᴀɴɴᴇʟ {channel_id}<b>")
     except Exception as e:
-        print(f"Failed to revoke invite for channel {channel_id}: {e}")
+        print(f"Fᴀɪʟᴇᴅ ᴛᴏ ʀᴇᴠᴏᴋᴇ ɪɴᴠɪᴛᴇ ғᴏʀ ᴄʜᴀɴɴᴇʟ {channel_id}: {e}<b>")
 
 # Set channel command
 @Bot.on_message(filters.command('setchannel') & filters.private & filters.user(OWNER_ID))
 async def set_channel(client: Bot, message: Message):
     user_id = message.from_user.id
     if user_id not in ADMINS:
-        return await message.reply("<b><blockquote expandable>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴜsᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ.")
+        return await message.reply("<b><blockquote expandable>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴜsᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ.<b>")
     
     try:
         channel_id = int(message.command[1])
     except (IndexError, ValueError):
-        return await message.reply("<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ID. Exᴀᴍᴘʟᴇ:{code} /setchannel <channel_id> {code}")
+        return await message.reply("<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ID. Exᴀᴍᴘʟᴇ:{code} /setchannel <channel_id> {code}<b>")
     
     try:
         chat = await client.get_chat(channel_id)
 
         if chat.permissions and not (chat.permissions.can_post_messages or chat.permissions.can_edit_messages):
-            return await message.reply(f"<b><blockquote expandable>I ᴀᴍ ɪɴ {chat.title}, ʙᴜᴛ I ʟᴀᴄᴋ ᴘᴏsᴛɪɴɢ ᴏʀ ᴇᴅɪᴛɪɴɢ ᴘᴇʀᴍɪssɪᴏɴs.")
+            return await message.reply(f"<b><blockquote expandable>I ᴀᴍ ɪɴ {chat.title}, ʙᴜᴛ I ʟᴀᴄᴋ ᴘᴏsᴛɪɴɢ ᴏʀ ᴇᴅɪᴛɪɴɢ ᴘᴇʀᴍɪssɪᴏɴs.<b>")
         
         await save_channel(channel_id)
-        return await message.reply(f"<b><blockquote expandable>✅ Cʜᴀɴɴᴇʟ {chat.title} ({channel_id}) ʜᴀs ʙᴇᴇɴ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ.")
+        return await message.reply(f"<b><blockquote expandable>✅ Cʜᴀɴɴᴇʟ {chat.title} ({channel_id}) ʜᴀs ʙᴇᴇɴ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ.<b>")
     
     except UserNotParticipant:
-        return await message.reply("<b><blockquote expandable>I ᴀᴍ ɴᴏᴛ ᴀ ᴍᴇᴍʙᴇʀ ᴏғ ᴛʜɪs ᴄʜᴀɴɴᴇʟ. Pʟᴇᴀsᴇ ᴀᴅᴅ ᴍᴇ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.")
+        return await message.reply("<b><blockquote expandable>I ᴀᴍ ɴᴏᴛ ᴀ ᴍᴇᴍʙᴇʀ ᴏғ ᴛʜɪs ᴄʜᴀɴɴᴇʟ. Pʟᴇᴀsᴇ ᴀᴅᴅ ᴍᴇ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.<b>")
     except FloodWait as e:
         await asyncio.sleep(e.x)
         return await set_channel(client, message)
@@ -61,22 +61,22 @@ async def set_channel(client: Bot, message: Message):
 async def del_channel(client: Bot, message: Message):
     user_id = message.from_user.id
     if user_id not in ADMINS:
-        return await message.reply("You are not authorized to use this command.")
+        return await message.reply("<b><blockquote expandable>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴜsᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ.<b>")
     
     try:
         channel_id = int(message.command[1])
     except (IndexError, ValueError):
-        return await message.reply("<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ID. Exᴀᴍᴘʟᴇ:{code} /delchannel <channel_id> {code}")
+        return await message.reply("<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ID. Exᴀᴍᴘʟᴇ:{code} /delchannel <channel_id> {code}<b>")
     
     await delete_channel(channel_id)
-    return await message.reply(f"<b><blockquote expandable>❌ Cʜᴀɴɴᴇʟ {channel_id} ʜᴀs ʙᴇᴇɴ ʀᴇᴍᴏᴠᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ.")
+    return await message.reply(f"<b><blockquote expandable>❌ Cʜᴀɴɴᴇʟ {channel_id} ʜᴀs ʙᴇᴇɴ ʀᴇᴍᴏᴠᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ.<b>")
 
 # Channel post command
 @Bot.on_message(filters.command('channelpost') & filters.private & filters.user(OWNER_ID))
 async def channel_post(client: Bot, message: Message):
     channels = await get_channels()
     if not channels:
-        return await message.reply("<b><blockquote expandable>Nᴏ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀsᴇ ᴜsᴇ /setchannel ᴛᴏ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ.")
+        return await message.reply("<b><blockquote expandable>Nᴏ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀsᴇ ᴜsᴇ /setchannel ᴛᴏ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ.<b>")
 
     await send_channel_page(client, message, channels, page=0)
 
@@ -114,7 +114,7 @@ async def send_channel_page(client, message, channels, page):
         buttons.append(nav_buttons)
 
     reply_markup = InlineKeyboardMarkup(buttons)
-    await message.reply("📢 Select a channel to post:", reply_markup=reply_markup)
+    await message.reply("Sᴇʟᴇᴄᴛ ᴀ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴀᴄᴄᴇss:", reply_markup=reply_markup)
 
 @Bot.on_callback_query(filters.regex(r"channelpage_(\d+)"))
 async def paginate_channels(client, callback_query):
@@ -128,7 +128,7 @@ async def paginate_channels(client, callback_query):
 async def req_post(client: Bot, message: Message):
     channels = await get_channels()
     if not channels:
-        return await message.reply("<b><blockquote expandable>Nᴏ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀsᴇ ᴜsᴇ /setchannel ᴛᴏ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ")
+        return await message.reply("<b><blockquote expandable>Nᴏ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀsᴇ ᴜsᴇ /setchannel ᴛᴏ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ<b>")
 
     await send_request_page(client, message, channels, page=0)
 
