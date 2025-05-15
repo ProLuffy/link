@@ -1,31 +1,20 @@
 # +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
-import os
-import asyncio
-import sys
-import time
-import base64
-from collections import defaultdict
-from pyrogram import Client, filters, __version__
-from pyrogram.enums import ParseMode, ChatMemberStatus
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, User
-from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated, UserNotParticipant, ChatIdInvalid
-
-# plugins/start.py
 import asyncio
 import base64
 from collections import defaultdict
 from pyrogram import Client, filters
-from pyrogram.enums import ParseMode
+from pyrogram.enums import ParseMode, ChatMemberStatus
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pyrogram.errors import FloodWait
+from pyrogram.errors import FloodWait, UserNotParticipant
 
 from bot import Bot
 from datetime import datetime, timedelta
 from config import ADMINS, OWNER_ID
 from database.database import save_encoded_link, get_channel_by_encoded_link, save_encoded_link2, get_channel_by_encoded_link2
-from database.database import add_user
+from database.database import add_user, get_fsub_channels
 from database.database import save_invite_link, get_current_invite_link
 from plugins.newpost import revoke_invite_after_5_minutes
+from helper_func import check_subscription_status
 
 # Start picture file ID (replace with actual file ID)
 START_PIC_FILE_ID = "https://envs.sh/Chb.jpg"
@@ -40,10 +29,21 @@ async def start_command(client: Bot, message: Message):
         if datetime.now() < user_banned_until[user_id]:
             return await message.reply_text(
                 "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
-            parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML
             )
             
     await add_user(user_id)
+
+    # Check FSub requirements
+    fsub_channels = await get_fsub_channels()
+    if fsub_channels:
+        is_subscribed, subscription_message, subscription_buttons = await check_subscription_status(client, user_id, fsub_channels)
+        if not is_subscribed:
+            return await message.reply_text(
+                subscription_message,
+                reply_markup=subscription_buttons,
+                parse_mode=ParseMode.HTML
+            )
 
     text = message.text
     if len(text) > 7:
@@ -148,13 +148,35 @@ async def help_callback(client: Bot, callback_query):
 async def close_callback(client: Bot, callback_query):
     await callback_query.answer()
     await callback_query.message.delete()
-#=====================================================================================##
+
+@Bot.on_callback_query(filters.regex("check_sub"))
+async def check_sub_callback(client: Bot, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    fsub_channels = await get_fsub_channels()
+    
+    if not fsub_channels:
+        await callback_query.message.edit_text(
+            "<b>No FSub channels configured!</b>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+    
+    is_subscribed, subscription_message, subscription_buttons = await check_subscription_status(client, user_id, fsub_channels)
+    if is_subscribed:
+        await callback_query.message.edit_text(
+            "<b>You are subscribed to all required channels! Use /start to proceed.</b>",
+            parse_mode=ParseMode.HTML
+        )
+    else:
+        await callback_query.message.edit_text(
+            subscription_message,
+            reply_markup=subscription_buttons,
+            parse_mode=ParseMode.HTML
+        )
 
 WAIT_MSG = "<b>Processing...</b>"
 
 REPLY_ERROR = "<code>Use this command as a reply to any Telegram message without any spaces.</code>"
-
-#=====================================================================================##
 
 @Bot.on_message(filters.command('status') & filters.private & filters.user(ADMINS))
 async def info(client: Bot, message: Message):   
@@ -167,7 +189,7 @@ async def info(client: Bot, message: Message):
     # Calculate ping time in milliseconds
     ping_time = (end_time - start_time) * 1000
     
-    users = await full_userbase()  # Updated to use correct database function
+    users = await full_userbase()
     now = datetime.now()
     delta = now - client.uptime
     bottime = get_readable_time(delta.seconds)
@@ -177,8 +199,6 @@ async def info(client: Bot, message: Message):
         reply_markup=reply_markup,
         parse_mode=ParseMode.HTML
     )
-
-#=====================================================================================##
 
 @Bot.on_message(filters.command('broadcast') & filters.private & filters.user(ADMINS))
 async def send_text(client: Bot, message: Message):
@@ -273,29 +293,6 @@ Unsuccessful: {unsuccessful}</b>"""
         await asyncio.sleep(8)
         await msg.delete()
 
-#=====================================================================================##
-
-@Bot.on_callback_query(filters.regex("help"))
-async def help_callback(client: Bot, callback_query):
-    inline_buttons = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="close")]
-        ]
-    )
-    
-    await callback_query.answer()
-    await callback_query.message.edit_text("<b><blockquote expandable>» ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/_i_killed_my_clan>ᴏʙɪᴛᴏ</a>\n» ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ : <a href=https://t.me/society_network>sᴏᴄɪᴇᴛʏ ɴᴇᴛᴡᴏʀᴋ</a>\n» ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/animes_crew>ᴀɴɪᴍᴇ ᴄʀᴇᴡ</a>\n» ᴏɴɢᴏɪɴɢ ᴀɴɪᴍᴇ : <a href=https://t.me/Ongoing_Crew>ᴏɴɢᴏɪɴɢ ᴄʀᴇᴡ</a>\n» ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/i_killed_my_clan>ᴏʙɪᴛᴏ</a></b>",
-    reply_markup=inline_buttons,
-    parse_mode=ParseMode.HTML
-    )
-
-@Bot.on_callback_query(filters.regex("close"))
-async def close_callback(client: Bot, callback_query):
-    await callback_query.answer()
-    await callback_query.message.delete()
-
-#=====================================================================================##
-
 user_message_count = {}
 user_banned_until = {}
 
@@ -331,20 +328,3 @@ async def monitor_messages(client: Bot, message: Message):
             parse_mode=ParseMode.HTML
         )
         return
-
-# Utility function to format uptime (assumed to be defined elsewhere, included for completeness)
-def get_readable_time(seconds: int) -> str:
-    """Convert seconds to a human-readable time format."""
-    intervals = [
-        ('days', 86400),  # 60 * 60 * 24
-        ('hours', 3600),  # 60 * 60
-        ('minutes', 60),
-        ('seconds', 1),
-    ]
-    result = []
-    for name, count in intervals:
-        value = seconds // count
-        if value:
-            seconds -= value * count
-            result.append(f"{int(value)} {name}")
-    return ' '.join(result) or '0 seconds'
