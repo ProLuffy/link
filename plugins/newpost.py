@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 PAGE_SIZE = 6
 
 # Revoke invite link after 10 minutes
-async def revoke_invite_after_10_minutes(client: Bot, channel_id: int, link: str, is_request: bool = False):
+async def revoke_invite_after_5_minutes(client: Bot, channel_id: int, link: str, is_request: bool = False):
     await asyncio.sleep(300)  # 10 minutes
     try:
         if is_request:
