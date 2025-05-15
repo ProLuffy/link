@@ -28,7 +28,7 @@ from database.database import save_invite_link, get_current_invite_link
 from plugins.newpost import revoke_invite_after_5_minutes
 
 # Start picture file ID (replace with actual file ID)
-START_PIC_FILE_ID = "AgACAgUAAxkBAAIBEWcO2rKz5z8AAV0Qz4m7f3qJAAH9EAACi7gxG3-VmVqL4W3rAAK5AAQBAAMCAAN4AAM1BA"
+START_PIC_FILE_ID = "https://envs.sh/Chb.jpg"
 
 user_banned_until = {}
 
@@ -39,10 +39,10 @@ async def start_command(client: Bot, message: Message):
     if user_id in user_banned_until:
         if datetime.now() < user_banned_until[user_id]:
             return await message.reply_text(
-                "<b>You are temporarily banned from using commands due to spamming. Try again later.</b>",
-                parse_mode=ParseMode.HTML
+                "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
+            parse_mode=ParseMode.HTML
             )
-
+            
     await add_user(user_id)
 
     text = message.text
@@ -59,7 +59,7 @@ async def start_command(client: Bot, message: Message):
             
             if not channel_id:
                 return await message.reply_text(
-                    "<b>Invalid or expired invite link.</b>",
+                    "<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ ɪɴᴠɪᴛᴇ ʟɪɴᴋ.</b>",
                     parse_mode=ParseMode.HTML
                 )
             
@@ -79,11 +79,11 @@ async def start_command(client: Bot, message: Message):
 
             await save_invite_link(channel_id, invite.invite_link, is_request)
 
-            button_text = "Request to Join" if is_request else "Join Channel"
+            button_text = "• Rᴇǫᴜᴇsᴛ ᴛᴏ Jᴏɪɴ •" if is_request else "• Jᴏɪɴ Cʜᴀɴɴᴇʟ •"
             button = InlineKeyboardMarkup([[InlineKeyboardButton(button_text, url=invite.invite_link)]])
 
             await message.reply_text(
-                "<b>Here is your link! Click below to proceed:</b>",
+                "<b><blockquote expandable>Hᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ! Cʟɪᴄᴋ ʙᴇʟᴏᴡ ᴛᴏ ᴘʀᴏᴄᴇᴇᴅ</b>",
                 reply_markup=button,
                 parse_mode=ParseMode.HTML
             )
@@ -92,23 +92,19 @@ async def start_command(client: Bot, message: Message):
 
         except Exception as e:
             await message.reply_text(
-                "<b>Invalid or expired invite link.</b>",
+                "<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ ɪɴᴠɪᴛᴇ ʟɪɴᴋ.</b>",
                 parse_mode=ParseMode.HTML
             )
             print(f"Decoding error: {e}")
     else:
         inline_buttons = InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton("About", callback_data="help"),
-                 InlineKeyboardButton("Close", callback_data="close")]
+                [InlineKeyboardButton("• ᴀʙᴏᴜᴛ", callback_data="help"),
+                 InlineKeyboardButton("ᴄʟᴏsᴇ •", callback_data="close")]
             ]
         )
         
-        welcome_message = (
-            "<b>Welcome to the Advanced Links Sharing Bot!\n\n"
-            "With this bot, you can share links and keep your channels safe from copyright issues.\n"
-            f"Created by: <a href='https://t.me/i_killed_my_clan'>Obito</a></b>"
-        )
+        welcome_message = ("<b><blockquote expandable>Wᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʟɪɴᴋs sʜᴀʀɪɴɢ ʙᴏᴛ.Wɪᴛʜ ᴛʜɪs ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ sʜᴀʀᴇ ʟɪɴᴋs ᴀɴᴅ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs sᴀғᴇ ғʀᴏᴍ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs:")
         
         try:
             await message.reply_photo(
@@ -127,17 +123,10 @@ async def start_command(client: Bot, message: Message):
 
 @Bot.on_callback_query(filters.regex("help"))
 async def help_callback(client: Bot, callback_query):
-    new_text = (
-        "<b>Creator: <a href='https://t.me/i_killed_my_clan'>Obito</a>\n"
-        "Our Community: <a href='https://t.me/society_network'>Society Network</a>\n"
-        "Anime Channel: <a href='https://t.me/animes_sub_society'>Anime Society</a>\n"
-        "Ongoing Society: <a href='https://t.me/Ongoiing_society'>Ongoing Society</a>\n"
-        "Manga Society: <a href='https://t.me/Manga_X_Society'>Manga Society</a>\n"
-        "Developer: <a href='https://t.me/i_killed_my_clan'>Obito</a></b>"
-    )
+    new_text = ("<b><blockquote expandable>» ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/_i_killed_my_clan>ᴏʙɪᴛᴏ</a>\n» ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ : <a href=https://t.me/society_network>sᴏᴄɪᴇᴛʏ ɴᴇᴛᴡᴏʀᴋ</a>\n» ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/animes_crew>ᴀɴɪᴍᴇ ᴄʀᴇᴡ</a>\n» ᴏɴɢᴏɪɴɢ ᴀɴɪᴍᴇ : <a href=https://t.me/Ongoing_Crew>ᴏɴɢᴏɪɴɢ ᴄʀᴇᴡ</a>\n» ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/i_killed_my_clan>ᴏʙɪᴛᴏ</a></b>")
     inline_buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("Close", callback_data="close")]
+            [InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="close")]
         ]
     )
 
@@ -169,7 +158,7 @@ REPLY_ERROR = "<code>Use this command as a reply to any Telegram message without
 
 @Bot.on_message(filters.command('status') & filters.private & filters.user(ADMINS))
 async def info(client: Bot, message: Message):   
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Close", callback_data="close")]])
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="close")]])
     
     start_time = time.time()
     temp_msg = await message.reply("<b><i>Processing...</i></b>", quote=True, parse_mode=ParseMode.HTML)
@@ -290,19 +279,13 @@ Unsuccessful: {unsuccessful}</b>"""
 async def help_callback(client: Bot, callback_query):
     inline_buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("Close", callback_data="close")]
+            [InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="close")]
         ]
     )
     
     await callback_query.answer()
-    await callback_query.message.edit_text(
-        "<b>Creator: <a href='https://t.me/i_killed_my_clan'>Obito</a>\n"
-        "Our Community: <a href='https://t.me/society_network'>Society Network</a>\n"
-        "Anime Channel: <a href='https://t.me/animes_sub_society'>Anime Society</a>\n"
-        "Ongoing Society: <a href='https://t.me/Ongoiing_society'>Ongoing Society</a>\n"
-        "Manga Society: <a href='https://t.me/Manga_X_Society'>Manga Society</a>\n"
-        "Developer: <a href='https://t.me/i_killed_my_clan'>Obito</a></b>",
-        reply_markup=inline_buttons,
+    await callback_query.message.edit_text("<b><blockquote expandable>» ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/_i_killed_my_clan>ᴏʙɪᴛᴏ</a>\n» ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ : <a href=https://t.me/society_network>sᴏᴄɪᴇᴛʏ ɴᴇᴛᴡᴏʀᴋ</a>\n» ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/animes_crew>ᴀɴɪᴍᴇ ᴄʀᴇᴡ</a>\n» ᴏɴɢᴏɪɴɢ ᴀɴɪᴍᴇ : <a href=https://t.me/Ongoing_Crew>ᴏɴɢᴏɪɴɢ ᴄʀᴇᴡ</a>\n» ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/i_killed_my_clan>ᴏʙɪᴛᴏ</a></b>")
+    reply_markup=inline_buttons,
         parse_mode=ParseMode.HTML
     )
 
@@ -330,7 +313,7 @@ async def monitor_messages(client: Bot, message: Message):
 
     if user_id in user_banned_until and now < user_banned_until[user_id]:
         await message.reply_text(
-            "<b>You are temporarily banned from using commands due to spamming. Try again later.</b>",
+            "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
             parse_mode=ParseMode.HTML
         )
         return
@@ -344,7 +327,7 @@ async def monitor_messages(client: Bot, message: Message):
     if len(user_message_count[user_id]) > MAX_MESSAGES:
         user_banned_until[user_id] = now + BAN_DURATION
         await message.reply_text(
-            "<b>You are temporarily banned from using commands due to spamming. Try again later.</b>",
+            "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
             parse_mode=ParseMode.HTML
         )
         return
