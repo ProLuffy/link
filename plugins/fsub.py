@@ -9,20 +9,18 @@ from pyrogram.enums import ChatMemberStatus
 async def add_fsub_command(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "<b>Please provide a channel ID or username. Usage: /addfsub @channel_username or /addfsub</b>",
+            "<b>Please provide a channel ID or username. Usage: /addfsub @channel_username or /addfsub -100123456789</b>",
             parse_mode="HTML"
         )
     
     channel_identifier = message.command[1]
     try:
-        # Resolve channel ID from username or use provided ID
         if channel_identifier.startswith('@'):
             chat = await client.get_chat(channel_identifier)
             channel_id = chat.id
         else:
             channel_id = int(channel_identifier)
         
-        # Verify bot is admin in the channel
         chat_member = await client.get_chat_member(channel_id, client.me.id)
         if chat_member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
             return await message.reply_text(
@@ -30,7 +28,6 @@ async def add_fsub_command(client: Client, message: Message):
                 parse_mode="HTML"
             )
         
-        # Add channel to FSub list
         added = await add_fsub_channel(channel_id)
         if added:
             await message.reply_text(
@@ -58,14 +55,12 @@ async def remove_fsub_command(client: Client, message: Message):
     
     channel_identifier = message.command[1]
     try:
-        # Resolve channel ID from username or use provided ID
         if channel_identifier.startswith('@'):
             chat = await client.get_chat(channel_identifier)
             channel_id = chat.id
         else:
             channel_id = int(channel_identifier)
         
-        # Remove channel from FSub list
         removed = await remove_fsub_channel(channel_id)
         if removed:
             await message.reply_text(
