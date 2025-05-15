@@ -284,7 +284,7 @@ async def help_callback(client: Bot, callback_query):
     )
     
     await callback_query.answer()
-    await callback_query.message.edit_text("<b><blockquote expandable>» ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/_i_killed_my_clan>ᴏʙɪᴛᴏ</a>\n» ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ : <a href=https://t.me/society_network>sᴏᴄɪᴇᴛʏ ɴᴇᴛᴡᴏʀᴋ</a>\n» ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/animes_crew>ᴀɴɪᴍᴇ ᴄʀᴇᴡ</a>\n» ᴏɴɢᴏɪɴɢ ᴀɴɪᴍᴇ : <a href=https://t.me/Ongoing_Crew>ᴏɴɢᴏɪɴɢ ᴄʀᴇᴡ</a>\n» ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/i_killed_my_clan>ᴏʙɪᴛᴏ</a></b>")
+    await callback_query.message.edit_text("<b><blockquote expandable>» ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/_i_killed_my_clan>ᴏʙɪᴛᴏ</a>\n» ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ : <a href=https://t.me/society_network>sᴏᴄɪᴇᴛʏ ɴᴇᴛᴡᴏʀᴋ</a>\n» ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/animes_crew>ᴀɴɪᴍᴇ ᴄʀᴇᴡ</a>\n» ᴏɴɢᴏɪɴɢ ᴀɴɪᴍᴇ : <a href=https://t.me/Ongoing_Crew>ᴏɴɢᴏɪɴɢ ᴄʀᴇᴡ</a>\n» ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/i_killed_my_clan>ᴏʙɪᴛᴏ</a></b>",
     reply_markup=inline_buttons,
     parse_mode=ParseMode.HTML
     )
