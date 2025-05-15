@@ -1,6 +1,7 @@
 # +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
 import asyncio
 import base64
+import time
 from collections import defaultdict
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode, ChatMemberStatus
@@ -9,14 +10,14 @@ from pyrogram.errors import FloodWait, UserNotParticipant
 
 from bot import Bot
 from datetime import datetime, timedelta
-from config import ADMINS, OWNER_ID
+from config import ADMINS, OWNER_ID, START_MSG, HELP, ABOUT, BOT_STATS_TEXT
 from database.database import save_encoded_link, get_channel_by_encoded_link, save_encoded_link2, get_channel_by_encoded_link2
-from database.database import add_user, get_fsub_channels
+from database.database import add_user, get_fsub_channels, full_userbase, del_user
 from database.database import save_invite_link, get_current_invite_link
 from plugins.newpost import revoke_invite_after_5_minutes
-from helper_func import check_subscription_status
+from helper_func import check_subscription_status, get_readable_time
 
-# Start picture file ID (replace with actual file ID)
+# Start picture file ID
 START_PIC_FILE_ID = "https://envs.sh/Chb.jpg"
 
 user_banned_until = {}
@@ -28,7 +29,7 @@ async def start_command(client: Bot, message: Message):
     if user_id in user_banned_until:
         if datetime.now() < user_banned_until[user_id]:
             return await message.reply_text(
-                "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
+                "<b><blockquote expandable>You are temporarily banned from using commands due to spamming. Try again later.</b>",
                 parse_mode=ParseMode.HTML
             )
             
@@ -59,7 +60,7 @@ async def start_command(client: Bot, message: Message):
             
             if not channel_id:
                 return await message.reply_text(
-                    "<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ ɪɴᴠɪᴛᴇ ʟɪɴᴋ.</b>",
+                    "<b><blockquote expandable>Invalid or expired invite link.</b>",
                     parse_mode=ParseMode.HTML
                 )
             
@@ -79,11 +80,11 @@ async def start_command(client: Bot, message: Message):
 
             await save_invite_link(channel_id, invite.invite_link, is_request)
 
-            button_text = "• Rᴇǫᴜᴇsᴛ ᴛᴏ Jᴏɪɴ •" if is_request else "• Jᴏɪɴ Cʜᴀɴɴᴇʟ •"
+            button_text = "• Request to Join •" if is_request else "• Join Channel •"
             button = InlineKeyboardMarkup([[InlineKeyboardButton(button_text, url=invite.invite_link)]])
 
             await message.reply_text(
-                "<b><blockquote expandable>Hᴇʀᴇ ɪs ʏᴏᴜʀ ʟɪɴᴋ! Cʟɪᴄᴋ ʙᴇʟᴏᴡ ᴛᴏ ᴘʀᴏᴄᴇᴇᴅ</b>",
+                "<b><blockquote expandable>Here is your link! Click below to proceed</b>",
                 reply_markup=button,
                 parse_mode=ParseMode.HTML
             )
@@ -92,55 +93,76 @@ async def start_command(client: Bot, message: Message):
 
         except Exception as e:
             await message.reply_text(
-                "<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ ɪɴᴠɪᴛᴇ ʟɪɴᴋ.</b>",
+                "<b><blockquote expandable>Invalid or expired invite link.</b>",
                 parse_mode=ParseMode.HTML
             )
             print(f"Decoding error: {e}")
     else:
         inline_buttons = InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton("• ᴀʙᴏᴜᴛ", callback_data="help"),
-                 InlineKeyboardButton("ᴄʟᴏsᴇ •", callback_data="close")]
+                [InlineKeyboardButton("• About", callback_data="about"),
+                 InlineKeyboardButton("• Help", callback_data="help")],
+                [InlineKeyboardButton("• Close •", callback_data="close")]
             ]
         )
-        
-        welcome_message = ("<b><blockquote expandable>Wᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʟɪɴᴋs sʜᴀʀɪɴɢ ʙᴏᴛ.Wɪᴛʜ ᴛʜɪs ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ sʜᴀʀᴇ ʟɪɴᴋs ᴀɴᴅ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs sᴀғᴇ ғʀᴏᴍ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs:")
         
         try:
             await message.reply_photo(
                 photo=START_PIC_FILE_ID,
-                caption=welcome_message,
+                caption=START_MSG,
+                reply_envs.sh/Chb.jpg",
                 reply_markup=inline_buttons,
                 parse_mode=ParseMode.HTML
             )
         except Exception as e:
             print(f"Error sending start picture: {e}")
             await message.reply_text(
-                welcome_message,
+                START_MSG,
                 reply_markup=inline_buttons,
                 parse_mode=ParseMode.HTML
             )
 
 @Bot.on_callback_query(filters.regex("help"))
 async def help_callback(client: Bot, callback_query):
-    new_text = ("<b><blockquote expandable>» ᴄʀᴇᴀᴛᴏʀ: <a href=https://t.me/_i_killed_my_clan>ᴏʙɪᴛᴏ</a>\n» ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ : <a href=https://t.me/society_network>sᴏᴄɪᴇᴛʏ ɴᴇᴛᴡᴏʀᴋ</a>\n» ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/animes_crew>ᴀɴɪᴍᴇ ᴄʀᴇᴡ</a>\n» ᴏɴɢᴏɪɴɢ ᴀɴɪᴍᴇ : <a href=https://t.me/Ongoing_Crew>ᴏɴɢᴏɪɴɢ ᴄʀᴇᴡ</a>\n» ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=https://t.me/i_killed_my_clan>ᴏʙɪᴛᴏ</a></b>")
     inline_buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="close")]
+            [InlineKeyboardButton("• Close •", callback_data="close")]
         ]
     )
 
     await callback_query.answer()
     current_text = callback_query.message.text.html if callback_query.message.text else ""
-    if current_text != new_text or callback_query.message.reply_markup != inline_buttons:
+    if current_text != HELP or callback_query.message.reply_markup != inline_buttons:
         try:
             await callback_query.message.edit_text(
-                new_text,
+                HELP,
                 reply_markup=inline_buttons,
                 parse_mode=ParseMode.HTML
             )
         except Exception as e:
             print(f"Error editing help message: {e}")
+    else:
+        print("Skipped edit: Message content unchanged")
+
+@Bot.on_callback_query(filters.regex("about"))
+async def about_callback(client: Bot, callback_query):
+    inline_buttons = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("• Close •", callback_data="close")]
+        ]
+    )
+
+    await callback_query.answer()
+    current_text = callback_query.message.text.html if callback_query.message.text else ""
+    if current_text != ABOUT or callback_query.message.reply_markup != inline_buttons:
+        try:
+            await callback_query.message.edit_text(
+                ABOUT,
+                reply_markup=inline_buttons,
+                parse_mode=ParseMode.HTML
+            )
+        except Exception as e:
+            print(f"Error editing about message: {e}")
     else:
         print("Skipped edit: Message content unchanged")
 
@@ -180,13 +202,12 @@ REPLY_ERROR = "<code>Use this command as a reply to any Telegram message without
 
 @Bot.on_message(filters.command('status') & filters.private & filters.user(ADMINS))
 async def info(client: Bot, message: Message):   
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="close")]])
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("• Close •", callback_data="close")]])
     
     start_time = time.time()
     temp_msg = await message.reply("<b><i>Processing...</i></b>", quote=True, parse_mode=ParseMode.HTML)
     end_time = time.time()
     
-    # Calculate ping time in milliseconds
     ping_time = (end_time - start_time) * 1000
     
     users = await full_userbase()
@@ -229,7 +250,7 @@ async def send_text(client: Bot, message: Message):
         progress_bar = ''
         last_update_percentage = 0
         percent_complete = 0
-        update_interval = 0.05  # Update progress bar every 5%
+        update_interval = 0.05
 
         for i, chat_id in enumerate(query, start=1):
             async with cancel_lock:
@@ -253,15 +274,12 @@ async def send_text(client: Bot, message: Message):
             except:
                 unsuccessful += 1
 
-            # Calculate percentage complete
             percent_complete = i / total
 
-            # Update progress bar
             if percent_complete - last_update_percentage >= update_interval or last_update_percentage == 0:
                 num_blocks = int(percent_complete * bar_length)
                 progress_bar = "●" * num_blocks + "○" * (bar_length - num_blocks)
     
-                # Send periodic status updates
                 status_update = f"""<b>🤖 {broad_mode}Broadcast in Progress...
 
 Progress: [{progress_bar}] {percent_complete:.0%}
@@ -276,7 +294,6 @@ Unsuccessful: {unsuccessful}</b>
                 await pls_wait.edit(status_update, parse_mode=ParseMode.HTML)
                 last_update_percentage = percent_complete
 
-        # Final status update
         final_status = f"""<b>{complete_msg}
 
 Progress: [{final_progress_bar}] {percent_complete:.0%}
@@ -310,7 +327,7 @@ async def monitor_messages(client: Bot, message: Message):
 
     if user_id in user_banned_until and now < user_banned_until[user_id]:
         await message.reply_text(
-            "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
+            "<b><blockquote expandable>You are temporarily banned from using commands due to spamming. Try again later.</b>",
             parse_mode=ParseMode.HTML
         )
         return
@@ -324,7 +341,8 @@ async def monitor_messages(client: Bot, message: Message):
     if len(user_message_count[user_id]) > MAX_MESSAGES:
         user_banned_until[user_id] = now + BAN_DURATION
         await message.reply_text(
-            "<b><blockquote expandable>Yᴏᴜ ᴀʀᴇ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴄᴏᴍᴍᴀɴᴅs ᴅᴜᴇ ᴛᴏ sᴘᴀᴍᴍɪɴɢ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.</b>",
+            "<b><blockquote expandable>You are temporarily banned from using commands due to spamming. Try again later.</b>",
             parse_mode=ParseMode.HTML
         )
         return
+        # +++ Made By Obito [telegram username: @i_killed_my_clan] +++ #
