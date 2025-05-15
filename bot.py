@@ -1,3 +1,4 @@
+# bot.py
 import asyncio
 import sys
 from datetime import datetime
@@ -26,7 +27,6 @@ class Bot(Client):
         )
         self.LOGGER = LOGGER
 
-    # Global cancel flag for broadcast
     async def start(self):
         await super().start()
         usr_bot_me = await self.get_me()
@@ -48,11 +48,22 @@ class Bot(Client):
         self.username = usr_bot_me.username
 
         # Web-response
-        app = web.AppRunner(await web_server())
-        await app.setup()
-        bind_address = "0.0.0.0"
-        await web.TCPSite(app, bind_address, PORT).start()
+        try:
+            app = web.AppRunner(await web_server())
+            await app.setup()
+            bind_address = "0.0.0.0"
+            await web.TCPSite(app, bind_address, PORT).start()
+            self.LOGGER(__name__).info(f"Web server started on {bind_address}:{PORT}")
+        except Exception as e:
+            self.LOGGER(__name__).error(f"Failed to start web server: {e}")
 
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
+
+# Global cancel flag for broadcast
+is_canceled = False
+cancel_lock = asyncio.Lock()
+
+if __name__ == "__main__":
+    Bot().run()
