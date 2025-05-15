@@ -30,24 +30,24 @@ async def revoke_invite_after_5_minutes(client: Bot, channel_id: int, link: str,
 async def set_channel(client: Bot, message: Message):
     user_id = message.from_user.id
     if user_id not in ADMINS:
-        return await message.reply("You are not authorized to use this command.")
+        return await message.reply("<b><blockquote expandable>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴜsᴇ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ.")
     
     try:
         channel_id = int(message.command[1])
     except (IndexError, ValueError):
-        return await message.reply("Invalid channel ID. Example: /setchannel <channel_id>")
+        return await message.reply("<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ID. Exᴀᴍᴘʟᴇ:{code} /setchannel <channel_id> {code}")
     
     try:
         chat = await client.get_chat(channel_id)
 
         if chat.permissions and not (chat.permissions.can_post_messages or chat.permissions.can_edit_messages):
-            return await message.reply(f"I am in {chat.title}, but I lack posting or editing permissions.")
+            return await message.reply(f"<b><blockquote expandable>I ᴀᴍ ɪɴ {chat.title}, ʙᴜᴛ I ʟᴀᴄᴋ ᴘᴏsᴛɪɴɢ ᴏʀ ᴇᴅɪᴛɪɴɢ ᴘᴇʀᴍɪssɪᴏɴs.")
         
         await save_channel(channel_id)
-        return await message.reply(f"✅ Channel {chat.title} ({channel_id}) has been added successfully.")
+        return await message.reply(f"<b><blockquote expandable>✅ Cʜᴀɴɴᴇʟ {chat.title} ({channel_id}) ʜᴀs ʙᴇᴇɴ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ.")
     
     except UserNotParticipant:
-        return await message.reply("I am not a member of this channel. Please add me and try again.")
+        return await message.reply("<b><blockquote expandable>I ᴀᴍ ɴᴏᴛ ᴀ ᴍᴇᴍʙᴇʀ ᴏғ ᴛʜɪs ᴄʜᴀɴɴᴇʟ. Pʟᴇᴀsᴇ ᴀᴅᴅ ᴍᴇ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.")
     except FloodWait as e:
         await asyncio.sleep(e.x)
         return await set_channel(client, message)
@@ -66,17 +66,17 @@ async def del_channel(client: Bot, message: Message):
     try:
         channel_id = int(message.command[1])
     except (IndexError, ValueError):
-        return await message.reply("Invalid channel ID. Example: /delchannel <channel_id>")
+        return await message.reply("<b><blockquote expandable>Iɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ID. Exᴀᴍᴘʟᴇ:{code} /delchannel <channel_id> {code}")
     
     await delete_channel(channel_id)
-    return await message.reply(f"❌ Channel {channel_id} has been removed successfully.")
+    return await message.reply(f"<b><blockquote expandable>❌ Cʜᴀɴɴᴇʟ {channel_id} ʜᴀs ʙᴇᴇɴ ʀᴇᴍᴏᴠᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ.")
 
 # Channel post command
 @Bot.on_message(filters.command('channelpost') & filters.private & filters.user(OWNER_ID))
 async def channel_post(client: Bot, message: Message):
     channels = await get_channels()
     if not channels:
-        return await message.reply("No channels are available. Please use /setchannel to add a channel.")
+        return await message.reply("<b><blockquote expandable>Nᴏ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀsᴇ ᴜsᴇ /setchannel ᴛᴏ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ.")
 
     await send_channel_page(client, message, channels, page=0)
 
@@ -106,9 +106,9 @@ async def send_channel_page(client, message, channels, page):
 
     nav_buttons = []
     if page > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅ Previous", callback_data=f"channelpage_{page-1}"))
+        nav_buttons.append(InlineKeyboardButton("• Pʀᴇᴠɪᴏᴜs •", callback_data=f"channelpage_{page-1}"))
     if page < total_pages - 1:
-        nav_buttons.append(InlineKeyboardButton("Next ➡", callback_data=f"channelpage_{page+1}"))
+        nav_buttons.append(InlineKeyboardButton("• Nᴇxᴛ •", callback_data=f"channelpage_{page+1}"))
 
     if nav_buttons:
         buttons.append(nav_buttons)
@@ -128,7 +128,7 @@ async def paginate_channels(client, callback_query):
 async def req_post(client: Bot, message: Message):
     channels = await get_channels()
     if not channels:
-        return await message.reply("No channels are available. Please use /setchannel to add a channel.")
+        return await message.reply("<b><blockquote expandable>Nᴏ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀsᴇ ᴜsᴇ /setchannel ᴛᴏ ᴀᴅᴅ ᴀ ᴄʜᴀɴɴᴇʟ")
 
     await send_request_page(client, message, channels, page=0)
 
@@ -159,14 +159,14 @@ async def send_request_page(client, message, channels, page):
 
     nav_buttons = []
     if page > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅ Previous", callback_data=f"reqpage_{page-1}"))
+        nav_buttons.append(InlineKeyboardButton("• Pʀᴇᴠɪᴏᴜs •", callback_data=f"reqpage_{page-1}"))
     if page < total_pages - 1:
-        nav_buttons.append(InlineKeyboardButton("Next ➡", callback_data=f"reqpage_{page+1}"))
+        nav_buttons.append(InlineKeyboardButton("• Nᴇxᴛ •", callback_data=f"reqpage_{page+1}"))
 
     if nav_buttons:
         buttons.append(nav_buttons) 
     reply_markup = InlineKeyboardMarkup(buttons)
-    await message.reply("📢 Select a channel to request access:", reply_markup=reply_markup)
+    await message.reply("Sᴇʟᴇᴄᴛ ᴀ ᴄʜᴀɴɴᴇʟ ᴛᴏ ʀᴇǫᴜᴇsᴛ ᴀᴄᴄᴇss:", reply_markup=reply_markup)
 
 @Bot.on_callback_query(filters.regex(r"reqpage_(\d+)"))
 async def paginate_requests(client, callback_query):
